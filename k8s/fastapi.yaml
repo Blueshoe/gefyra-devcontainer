@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fastapi
+  labels:
+    app.kubernetes.io/name: fastapi
+    app.kubernetes.io/instance: devcontainer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: fastapi
+      app.kubernetes.io/instance: devcontainer
+  template:
+    metadata:
+      annotations:
+      labels:
+        app.kubernetes.io/name: fastapi
+        app.kubernetes.io/instance: devcontainer
+    spec:
+      securityContext:
+        fsGroup: 1000
+        runAsUser: 1000
+      containers:
+        - name: fastapi-app
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+          image: "fastapi:latest"
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          resources: {}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fastapi
+  labels:
+    app.kubernetes.io/name: fastapi
+    app.kubernetes.io/instance: devcontainer
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: fastapi
+    app.kubernetes.io/instance: devcontainer
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: fastapi
+spec:
+  rules:
+    - host: fastapi.127.0.0.1.nip.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: fastapi
+                port:
+                  number: 8080
